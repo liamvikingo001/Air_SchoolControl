@@ -353,28 +353,56 @@
         window.addEventListener('offline', checkConnection);
         checkConnection();
 
+        // --- INICIO DE ZONA MODIFICADA (GPS PERSISTENTE) ---
         let currentLat = "";
         let currentLon = "";
+        let isWatchingGPS = false;
 
         function getRealTimeLocation() {
             const gpsBox = document.getElementById('gpsBox');
+            
             if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        currentLat = position.coords.latitude.toFixed(5);
-                        currentLon = position.coords.longitude.toFixed(5);
-                        gpsBox.textContent = `Coordenadas GPS: ${currentLat} ; ${currentLon}`;
-                    },
-                    (error) => {
-                        gpsBox.textContent = `Coordenadas GPS: Permiso denegado / Error`;
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                );
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 5000 // Permite usar caché muy reciente para acelerar el proceso
+                };
+
+                const successCallback = (position) => {
+                    currentLat = position.coords.latitude.toFixed(5);
+                    currentLon = position.coords.longitude.toFixed(5);
+                    gpsBox.textContent = `Coordenadas GPS: ${currentLat} ; ${currentLon}`;
+                };
+
+                const errorCallback = (error) => {
+                    // Si aún no tenemos coordenadas, mostramos el estado al usuario
+                    if (!currentLat) {
+                        if (error.code === error.PERMISSION_DENIED) {
+                            gpsBox.textContent = `Coordenadas GPS: Permiso denegado`;
+                        } else {
+                            gpsBox.textContent = `Coordenadas GPS: Buscando señal...`;
+                        }
+                    }
+                };
+
+                // 1. Solicitud inmediata (útil cuando se llama a la función al tomar foto)
+                navigator.geolocation.getCurrentPosition(successCallback, errorCallback, options);
+
+                // 2. Activar vigilancia persistente en segundo plano (solo se crea una vez)
+                if (!isWatchingGPS) {
+                    navigator.geolocation.watchPosition(successCallback, errorCallback, {
+                        enableHighAccuracy: true,
+                        timeout: 20000,
+                        maximumAge: 0
+                    });
+                    isWatchingGPS = true;
+                }
             } else {
                 gpsBox.textContent = `Coordenadas GPS: No soportado`;
             }
         }
         getRealTimeLocation();
+        // --- FIN DE ZONA MODIFICADA ---
 
         function updateDateTime() {
             const now = new Date();
@@ -479,7 +507,7 @@
             uploadLabel.innerHTML = 'Foto Capturada ✅';
             photoCheckmark.innerHTML = '✔️';
 
-            getRealTimeLocation();
+            getRealTimeLocation(); // Esto forzará una actualización de coordenadas al tomar la foto
             stopCamera();
         });
 
@@ -514,7 +542,6 @@
             statusMessage.className = 'status-loading';
             statusMessage.innerText = "Subiendo datos y evidencia a la nube...";
 
-            // Nueva URL de implementación asignada
             const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxo1oukLYvcTw1j63Hm574ypLT9EtE11sYULxGuHSr1IzBYOdkc3YwDgI7JM9TmJkd7xw/exec";
 
             const payload = {
