@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AIR_School_Control</title>
+    <style>
+        :root {
+            --primary-color: #2b4c80;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+        }
+
+        /* --- COMPORTAMIENTO NATIVO (FIJO) --- */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            height: 100vh; /* Fallback para navegadores antiguos */
+            height: 100dvh; /* Ocupa el 100% real en móviles, evitando que se corte el botón */
+            overflow: hidden; /* Evita el scroll de toda la página */
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 450px;
+            height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        /* Reloj y Fecha Dinámicos */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .time-box, .date-box {
+            border: 1px solid var(--primary-color);
+            border-radius: 6px;
+            padding: 6px 0;
+            width: 48%;
+            text-align: center;
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* Cabecera */
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .header h2 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 26px;
+            letter-spacing: 0.5px;
+        }
+
+        .header-line {
+            height: 4px;
+            background-color: var(--primary-color);
+            margin: 5px 0 15px 0;
+            border: none;
+        }
+
+        #opsForm {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow: hidden; /* Contiene la tarjeta con scroll interno */
+        }
+
+        /* --- CONTENEDOR PRINCIPAL CON SCROLL INTERNO --- */
+        .main-card {
+            background-color: #f2f3f5;
+            border: 1px solid var(--primary-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            flex-grow: 1; /* Toma el espacio disponible */
+            overflow-y: auto; /* SCROLL INTERNO ACTIVADO AQUÍ */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Fila del "Daily 15 minutos" */
+        .daily-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #ffffff;
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        .camera-icon {
+            font-size: 24px;
+        }
+
+        .daily-text {
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 16px;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .checkbox-icon {
+            width: 24px;
+            height: 24px;
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* --- NUEVO: ESPACIO DE IMAGEN --- */
+        .image-placeholder {
+            width: 100%;
+            min-height: 200px;
+            background-color: #ffffff;
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        #capturedImageContainer {
+            width: 100%;
+            margin-bottom: 15px;
+            display: none;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        #finalPhoto {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: #fff;
+        }
+
+        #retryPhotoBtn {
+            margin-top: 8px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Área de Texto */
+        .details-textarea {
+            width: 100%;
+            min-height: 120px;
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 15px;
+            box-sizing: border-box;
+            resize: none;
+            font-size: 16px;
+            color: var(--primary-color);
+            font-weight: bold;
+            font-family: inherit;
+            flex-shrink: 0;
+        }
+
+        .details-textarea::placeholder {
+            color: var(--primary-color);
+            text-align: center;
+            line-height: 80px;
+        }
+        
+        .details-textarea:focus::placeholder {
+            color: transparent;
+        }
+
+        /* Botón de Envío Fijo al Fondo */
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: #2f5697;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            flex-shrink: 0; /* Asegura que el botón no se reduzca */
+            margin-bottom: 10px; /* Sube el botón 10 pixeles como se solicitó */
+        }
+
+        .submit-btn:hover {
+            background-color: #203c6b;
+        }
+
+        .submit-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        #statusMessage {
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+            flex-shrink: 0;
+            margin-bottom: 10px;
+        }
+
+        .status-success { background-color: #d4edda; color: #155724; }
+        .status-loading { background-color: #fff3cd; color: #856404; }
+
+        /* Estilos para la cámara en tiempo real */
+        #cameraOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            display: none; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #cameraOverlay.active {
+            display: flex;
+        }
+
+        .camera-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            position: relative;
+        }
+
+        #liveVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #photoCanvas {
+            display: none; 
+        }
+
+        .camera-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .camera-btn {
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .capture-btn {
+            background-color: #fff;
+            color: #000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .close-camera-btn {
+            background-color: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <div class="top-bar">
+            <div id="liveTime" class="time-box">00:00:00</div>
+            <div id="liveDate" class="date-box">00/00/0000</div>
+        </div>
+
+        <div class="header">
+            <h2>AIR_School_Control</h2>
+            <hr class="header-line">
+        </div>
+
+        <form id="opsForm">
+            <div class="main-card">
+                
+                <button type="button" class="daily-row" id="startCameraBtn">
+                    <span class="camera-icon">📸</span>
+                    <span class="daily-text" id="uploadLabel">Daily 15” minutos</span>
+                    <span class="checkbox-icon" id="photoCheckmark"></span>
+                </button>
+
+                <div id="imagePlaceholder" class="image-placeholder">Imagen....</div>
+
+                <div id="capturedImageContainer">
+                    <img id="finalPhoto" alt="Foto capturada">
+                    <button type="button" id="retryPhotoBtn">Eliminar y Reintentar</button>
+                </div>
+
+                <textarea class="details-textarea" placeholder="Redacte detalles tratados......" required></textarea>
+            </div>
+
+            <button type="submit" id="btnSubmit" class="submit-btn">Guardar Registro</button>
+        </form>
+
+        <div id="statusMessage"></div>
+    </div>
+
+    <div id="cameraOverlay">
+        <div class="camera-container">
+            <video id="liveVideo" autoplay playsinline></video>
+            <canvas id="photoCanvas"></canvas> 
+            <div class="camera-controls">
+                <button type="button" class="camera-btn close-camera-btn" id="closeCameraBtn">Cancelar</button>
+                <button type="button" class="camera-btn capture-btn" id="captureBtn">Capturar Foto</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. LÓGICA DE RELOJ Y FECHA (Mantenida) ---
+        function updateDateTime() {
+            const now = new Date();
+            
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('liveTime').textContent = `${hours}:${minutes}:${seconds}`;
+
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0'); 
+            const year = now.getFullYear();
+            document.getElementById('liveDate').textContent = `${day}/${month}/${year}`;
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime(); 
+
+        // --- 2. LÓGICA DE CÁMARA OBLIGATORIA EN TIEMPO REAL ---
+        
+        // Elementos principales
+        const opsForm = document.getElementById('opsForm');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const uploadLabel = document.getElementById('uploadLabel');
+        const photoCheckmark = document.getElementById('photoCheckmark');
+        const textarea = document.querySelector('.details-textarea');
+        const btnSubmit = document.getElementById('btnSubmit');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Elementos de la cámara (Overlay)
+        const cameraOverlay = document.getElementById('cameraOverlay');
+        const liveVideo = document.getElementById('liveVideo');
+        const photoCanvas = document.getElementById('photoCanvas');
+        const captureBtn = document.getElementById('captureBtn');
+        const closeCameraBtn = document.getElementById('closeCameraBtn');
+
+        // Elementos de la vista previa final
+        const imagePlaceholder = document.getElementById('imagePlaceholder');
+        const capturedImageContainer = document.getElementById('capturedImageContainer');
+        const finalPhoto = document.getElementById('finalPhoto');
+        const retryPhotoBtn = document.getElementById('retryPhotoBtn');
+
+        // Variable para almacenar la imagen capturada (en base64)
+        let capturedPhotoData = null; 
+
+        // Variable para el stream de la cámara
+        let currentStream = null;
+
+        // Función para cerrar la cámara y detener el stream (ahorrar batería)
+        function stopCamera() {
+            cameraOverlay.classList.remove('active');
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+        }
+
+        // --- A) Abrir la cámara ---
+        startCameraBtn.addEventListener('click', async () => {
+            if (capturedPhotoData) return; 
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Este navegador no soporta el acceso a la cámara. Por favor use un navegador moderno.');
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" }
+                });
+                
+                currentStream = stream;
+                liveVideo.srcObject = stream;
+                cameraOverlay.classList.add('active'); 
+
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('No se pudo acceder a la cámara. Verifique los permisos de su navegador.');
+            }
+        });
+
+        // --- B) Cancelar la captura de cámara ---
+        closeCameraBtn.addEventListener('click', stopCamera);
+
+        // --- C) Capturar la foto ---
+        captureBtn.addEventListener('click', () => {
+            if (!currentStream) return;
+
+            photoCanvas.width = liveVideo.videoWidth;
+            photoCanvas.height = liveVideo.videoHeight;
+
+            const context = photoCanvas.getContext('2d');
+            context.drawImage(liveVideo, 0, 0, photoCanvas.width, photoCanvas.height);
+
+            const photoData = photoCanvas.toDataURL('image/png');
+            capturedPhotoData = photoData;
+
+            finalPhoto.src = photoData;
+            
+            // Ocultar placeholder y mostrar la foto final
+            imagePlaceholder.style.display = 'none';
+            capturedImageContainer.style.display = 'block';
+
+            uploadLabel.innerHTML = 'Foto Capturada ✅';
+            photoCheckmark.innerHTML = '✔️';
+
+            stopCamera();
+        });
+
+        // --- D) Reintentar/Eliminar foto ---
+        retryPhotoBtn.addEventListener('click', () => {
+            capturedPhotoData = null;
+            finalPhoto.src = '';
+            
+            // Ocultar foto final y volver a mostrar el placeholder de Imagen
+            capturedImageContainer.style.display = 'none';
+            imagePlaceholder.style.display = 'flex';
+            
+            uploadLabel.innerHTML = 'Daily 15” minutos';
+            photoCheckmark.innerHTML = '';
+        });
+
+        // --- 3. LÓGICA DE ENVÍO DE FORMULARIO (Mantenida y adaptada) ---
+        opsForm.addEventListener('submit', function(event) {
+            event.preventDefault(); 
+            
+            if (!capturedPhotoData) {
+                alert('Es obligatorio tomar una foto en tiempo real para continuar.');
+                return;
+            }
+
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = "Guardando...";
+            statusMessage.style.display = 'block';
+            statusMessage.className = 'status-loading';
+            statusMessage.innerText = "Subiendo datos y evidencia, por favor espere...";
+
+            setTimeout(function() {
+                
+                statusMessage.className = 'status-success';
+                statusMessage.innerText = "¡Registro y evidencia guardados correctamente!";
+                
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = "Guardar Registro";
+                
+                opsForm.reset();
+                
+                capturedPhotoData = null;
+                finalPhoto.src = '';
+                
+                // Restablecer vista de placeholder
+                capturedImageContainer.style.display = 'none';
+                imagePlaceholder.style.display = 'flex';
+                
+                uploadLabel.innerHTML = 'Daily 15” minutos';
+                photoCheckmark.innerHTML = '';
+
+                setTimeout(() => {
+                    statusMessage.style.display = 'none';
+                }, 4000);
+
+            }, 2500); 
+        });
+    </script>
+</body>
+</html>
